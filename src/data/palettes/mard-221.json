@@ -1,6 +1,6 @@
 {
   "brand": "Mard 221",
-  "beadSize": "5mm",
+  "beadSize": "2.6mm",
   "_source": "色值以 pd.anqstar.com/colors 为准。另两个来源(doudougongfang.com、pixel-beads.com)交叉校验：三方色号集合完全一致(221色)；在两来源分歧最大的 5 个色号上，第三方来源全部与本来源吻合(A25/D18 完全一致)，故直接采用而非取平均。非厂商实测数据，与实物仍有偏差；色名由色值推导，非官方命名。",
   "colors": [
     {
