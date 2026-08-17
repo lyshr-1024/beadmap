@@ -143,3 +143,63 @@ describe('fitGrid', () => {
     expect(fitGrid(100, 100, 0).width).toBe(1)
   })
 })
+
+describe('resample mode（卡通/像素）', () => {
+  it('纯色区保持原色不混合', () => {
+    const src = makeImage(8, 8, solid(200, 100, 50))
+    const out = resample(src, 2, 2, 'mode')
+    for (let i = 0; i < out.data.length; i += 4) {
+      expect(out.data[i]).toBe(200)
+      expect(out.data[i + 1]).toBe(100)
+      expect(out.data[i + 2]).toBe(50)
+    }
+  })
+
+  it('黑白边界不产生灰色过渡', () => {
+    const src = makeImage(8, 1, (x) => {
+      const v = x < 4 ? 0 : 255
+      return [v, v, v, 255]
+    })
+    const out = resample(src, 2, 1, 'mode')
+    // 面积平均会在这里产出灰，众数必须输出纯黑纯白
+    expect(out.data[0]).toBe(0)
+    expect(out.data[4]).toBe(255)
+  })
+
+  it('少数派像素被多数派吞掉', () => {
+    // 4 个像素里 3 红 1 蓝，众数应取红
+    const src = makeImage(4, 1, (x) => (x === 3 ? [0, 0, 255, 255] : [255, 0, 0, 255]))
+    const out = resample(src, 1, 1, 'mode')
+    expect(out.data[0]).toBe(255)
+    expect(out.data[2]).toBe(0)
+  })
+
+  it('输出色一定是原图中真实存在的颜色', () => {
+    const src = makeImage(6, 1, (x) => {
+      const palette = [
+        [255, 0, 0],
+        [0, 255, 0],
+      ][x % 2]
+      return [...palette, 255]
+    })
+    const out = resample(src, 3, 1, 'mode')
+    for (let i = 0; i < out.data.length; i += 4) {
+      const isRed = out.data[i] === 255 && out.data[i + 1] === 0
+      const isGreen = out.data[i] === 0 && out.data[i + 1] === 255
+      expect(isRed || isGreen).toBe(true)
+    }
+  })
+
+  it('透明为多数时输出透明', () => {
+    const src = makeImage(4, 1, (x) => (x === 0 ? [255, 0, 0, 255] : [0, 0, 0, 0]))
+    const out = resample(src, 1, 1, 'mode')
+    expect(out.data[3]).toBe(0)
+  })
+
+  it('不透明为多数时不输出透明', () => {
+    const src = makeImage(4, 1, (x) => (x === 3 ? [0, 0, 0, 0] : [255, 0, 0, 255]))
+    const out = resample(src, 1, 1, 'mode')
+    expect(out.data[3]).toBe(255)
+    expect(out.data[0]).toBe(255)
+  })
+})

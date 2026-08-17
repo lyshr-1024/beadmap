@@ -1,4 +1,4 @@
-export type ResampleKernel = 'box' | 'lanczos3'
+export type ResampleKernel = 'box' | 'lanczos3' | 'mode'
 
 export interface RgbaImage {
   width: number
@@ -81,6 +81,81 @@ function boxResample(src: Float32Array, sw: number, sh: number, dw: number, dh: 
         dst[di + 2] = b / weightSum
         dst[di + 3] = a / weightSum
       }
+    }
+  }
+  return dst
+}
+
+// 卡通图/像素画用面积平均会把黑描边混成灰、把纯色区混出过渡色。取众数保留原始色，
+// 边缘锐利，代价是丢失渐变层次——照片不要用这个。
+function modeResample(
+  src: Float32Array,
+  sw: number,
+  sh: number,
+  dw: number,
+  dh: number,
+): Float32Array {
+  const dst = new Float32Array(dw * dh * 4)
+  const scaleX = sw / dw
+  const scaleY = sh / dh
+  const tally = new Map<number, number>()
+
+  for (let dy = 0; dy < dh; dy++) {
+    const iy0 = Math.floor(dy * scaleY)
+    const iy1 = Math.max(Math.min(Math.ceil((dy + 1) * scaleY), sh), iy0 + 1)
+
+    for (let dx = 0; dx < dw; dx++) {
+      const ix0 = Math.floor(dx * scaleX)
+      const ix1 = Math.max(Math.min(Math.ceil((dx + 1) * scaleX), sw), ix0 + 1)
+
+      tally.clear()
+      let bestKey = -1
+      let bestCount = 0
+      let fallback = -1
+
+      for (let sy = iy0; sy < iy1; sy++) {
+        for (let sx = ix0; sx < ix1; sx++) {
+          const si = (sy * sw + sx) * 4
+          const a = src[si + 3]
+          // 量化到 5 bit/通道再计数，否则抗锯齿产生的近似色各算一票，众数失去意义
+          const key =
+            a < 8
+              ? 0
+              : (((src[si] & 0xf8) << 8) | ((src[si + 1] & 0xf8) << 3) | (src[si + 2] >> 3)) + 1
+          const c = (tally.get(key) ?? 0) + 1
+          tally.set(key, c)
+          if (fallback < 0) fallback = si
+          if (c > bestCount) {
+            bestCount = c
+            bestKey = key
+            fallback = si
+          }
+        }
+      }
+
+      const di = (dy * dw + dx) * 4
+      if (bestKey === 0) {
+        dst[di + 3] = 0
+        continue
+      }
+      // 众数只定"哪一类"，实际值取该格里属于该类的一个真实像素，避免量化误差
+      let picked = fallback
+      outer: for (let sy = iy0; sy < iy1; sy++) {
+        for (let sx = ix0; sx < ix1; sx++) {
+          const si = (sy * sw + sx) * 4
+          if (src[si + 3] < 8) continue
+          const key =
+            (((src[si] & 0xf8) << 8) | ((src[si + 1] & 0xf8) << 3) | (src[si + 2] >> 3)) + 1
+          if (key === bestKey) {
+            picked = si
+            break outer
+          }
+        }
+      }
+      dst[di] = src[picked]
+      dst[di + 1] = src[picked + 1]
+      dst[di + 2] = src[picked + 2]
+      dst[di + 3] = src[picked + 3]
     }
   }
   return dst
@@ -244,6 +319,15 @@ export function resample(
 ): RgbaImage {
   if (width <= 0 || height <= 0) {
     throw new Error(`目标尺寸必须为正数，收到 ${width}×${height}`)
+  }
+
+  // 众数采样要看原始像素值，预乘会改变颜色导致同色被分到不同桶
+  if (kernel === 'mode') {
+    const raw = Float32Array.from(img.data)
+    const out = modeResample(raw, img.width, img.height, width, height)
+    const data = new Uint8ClampedArray(width * height * 4)
+    data.set(out)
+    return { width, height, data }
   }
 
   const pre = premultiply(img)

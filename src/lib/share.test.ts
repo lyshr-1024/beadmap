@@ -4,8 +4,9 @@ import { encodeConfig, decodeConfig, type ShareConfig } from './share'
 const base: ShareConfig = {
   paletteId: 'generic',
   gridWidth: 58,
-  kernel: 'box',
+  kernel: 'mode',
   adjustments: { brightness: 0, contrast: 0, saturation: 0 },
+  maxColors: 0,
   pegBoardSize: 29,
   showPegSeams: true,
   showRulers: true,
@@ -37,7 +38,7 @@ describe('decodeConfig 往返', () => {
     expect(roundTrip(base)).toMatchObject({
       paletteId: 'generic',
       gridWidth: 58,
-      kernel: 'box',
+      kernel: 'mode',
       pegBoardSize: 29,
       showPegSeams: true,
       showRulers: true,
@@ -51,6 +52,7 @@ describe('decodeConfig 往返', () => {
       gridWidth: 120,
       kernel: 'lanczos3',
       adjustments: { brightness: 20, contrast: -30, saturation: 45 },
+      maxColors: 18,
       pegBoardSize: 14,
       showPegSeams: false,
       showRulers: false,
@@ -70,8 +72,21 @@ describe('decodeConfig 容错', () => {
     expect(decodeConfig('', 'generic')).toEqual({})
   })
 
-  it('未知 kernel 回落到 box', () => {
-    expect(decodeConfig('p=generic&k=bogus', 'generic').kernel).toBe('box')
+  it('非默认 kernel 往返保留', () => {
+    expect(roundTrip({ ...base, kernel: 'box' }).kernel).toBe('box')
+    expect(roundTrip({ ...base, kernel: 'lanczos3' }).kernel).toBe('lanczos3')
+  })
+
+  it('限定色数往返一致', () => {
+    expect(roundTrip({ ...base, maxColors: 18 }).maxColors).toBe(18)
+  })
+
+  it('不限色时不写进 URL', () => {
+    expect(encodeConfig(base)).not.toContain('mc=')
+  })
+
+  it('未知 kernel 回落到默认', () => {
+    expect(decodeConfig('p=generic&k=bogus', 'generic').kernel).toBe('mode')
   })
 
   it('超范围的网格宽度被夹住', () => {

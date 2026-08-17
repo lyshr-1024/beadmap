@@ -10,6 +10,8 @@ export interface QuantizeOptions {
   kernel: ResampleKernel
   alphaThreshold: number
   adjustments: Adjustments
+  /** 限定最多用多少种色号；0 表示不限制 */
+  maxColors: number
 }
 
 export interface ColorUsage {
@@ -23,7 +25,7 @@ export interface ColorUsage {
 export interface QuantizeResult {
   width: number
   height: number
-  /** 每格的色板索引；EMPTY_CELL 表示透明留空 */
+  /** 每格的色板索引，相对传入 quantize 的 palette 数组（即 activeColors）；EMPTY_CELL 表示透明留空 */
   cells: Uint16Array
   usage: ColorUsage[]
 }

@@ -26,6 +26,7 @@ interface BeadState {
   kernel: ResampleKernel
   alphaThreshold: number
   adjustments: Adjustments
+  maxColors: number
   pegBoardSize: number
   showPegSeams: boolean
   showRulers: boolean
@@ -39,6 +40,7 @@ interface BeadState {
   setKernel: (k: ResampleKernel) => void
   setAdjustment: (key: keyof Adjustments, value: number) => void
   resetAdjustments: () => void
+  setMaxColors: (n: number) => void
   toggleColor: (code: string) => void
   setAllColors: (enabled: boolean) => void
   setPegBoardSize: (n: number) => void
@@ -74,7 +76,7 @@ const initialEnabled = new Set(
 
 export const useBeadStore = create<BeadState>((set, get) => {
   async function compute() {
-    const { source, activeColors, gridWidth, kernel, alphaThreshold, adjustments } = get()
+    const { source, activeColors, gridWidth, kernel, alphaThreshold, adjustments, maxColors } = get()
     if (!source) return
     if (activeColors.length === 0) {
       set({ result: null, busy: false, error: '至少勾选一个色号' })
@@ -90,6 +92,7 @@ export const useBeadStore = create<BeadState>((set, get) => {
         kernel,
         alphaThreshold,
         adjustments,
+        maxColors,
       })
       set({ result, busy: false })
     } catch (e) {
@@ -123,9 +126,10 @@ export const useBeadStore = create<BeadState>((set, get) => {
     enabledCodes: initialEnabled,
     activeColors: activeOf(initialEntry.palette, initialEnabled),
     gridWidth: initial.gridWidth ?? 58,
-    kernel: initial.kernel ?? 'box',
+    kernel: initial.kernel ?? 'mode',
     alphaThreshold: 128,
     adjustments: initial.adjustments ?? NEUTRAL_ADJUSTMENTS,
+    maxColors: initial.maxColors ?? 0,
     pegBoardSize: initial.pegBoardSize ?? 29,
     showPegSeams: initial.showPegSeams ?? true,
     showRulers: initial.showRulers ?? true,
@@ -181,6 +185,11 @@ export const useBeadStore = create<BeadState>((set, get) => {
       schedule()
     },
 
+    setMaxColors: (n) => {
+      set({ maxColors: Math.max(0, Math.min(221, Math.round(n))) })
+      schedule()
+    },
+
     toggleColor: (code) => {
       const next = new Set(get().enabledCodes)
       if (next.has(code)) next.delete(code)
@@ -207,6 +216,7 @@ export const useBeadStore = create<BeadState>((set, get) => {
         gridWidth: s.gridWidth,
         kernel: s.kernel,
         adjustments: s.adjustments,
+        maxColors: s.maxColors,
         pegBoardSize: s.pegBoardSize,
         showPegSeams: s.showPegSeams,
         showRulers: s.showRulers,

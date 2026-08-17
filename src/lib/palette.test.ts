@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { parsePalette, preparePalette } from './palette'
 import generic from '../data/palettes/generic.json'
+import mard from '../data/palettes/mard-221.json'
 
 const valid = {
   brand: 'Test',
@@ -106,5 +107,34 @@ describe('preparePalette', () => {
     const p = preparePalette(parsePalette(generic))
     expect(p.labs).toHaveLength(p.colors.length)
     expect(p.labs[0].L).toBeCloseTo(100, 3)
+  })
+})
+
+describe('mard-221.json', () => {
+  it('通过 schema 校验且为 221 色', () => {
+    const p = parsePalette(mard)
+    expect(p.colors).toHaveLength(221)
+    expect(p.brand).toBe('Mard 221')
+  })
+
+  it('包含 A/B/C/D/E/F/G/H/M 九个系列', () => {
+    const series = new Set(parsePalette(mard).colors.map((c) => c.code[0]))
+    expect([...series].sort()).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'M'])
+  })
+
+  it('色号无重复且格式为字母+数字', () => {
+    const codes = parsePalette(mard).colors.map((c) => c.code)
+    expect(new Set(codes).size).toBe(codes.length)
+    codes.forEach((c) => expect(c).toMatch(/^[A-M]\d{1,2}$/))
+  })
+
+  it('覆盖足够黑与足够白（描边和高光必需）', () => {
+    const lum = (hex: string) => {
+      const n = parseInt(hex.slice(1), 16)
+      return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255
+    }
+    const colors = parsePalette(mard).colors
+    expect(Math.min(...colors.map((c) => lum(c.hex)))).toBeLessThan(0.02)
+    expect(Math.max(...colors.map((c) => lum(c.hex)))).toBeGreaterThan(0.97)
   })
 })

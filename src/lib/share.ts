@@ -7,6 +7,7 @@ export interface ShareConfig {
   gridWidth: number
   kernel: ResampleKernel
   adjustments: Adjustments
+  maxColors: number
   pegBoardSize: number
   showPegSeams: boolean
   showRulers: boolean
@@ -14,7 +15,7 @@ export interface ShareConfig {
   disabledCodes: string[]
 }
 
-const KERNELS: ResampleKernel[] = ['box', 'lanczos3']
+const KERNELS: ResampleKernel[] = ['box', 'lanczos3', 'mode']
 
 function clampInt(v: unknown, min: number, max: number, fallback: number): number {
   const n = typeof v === 'string' ? Number(v) : typeof v === 'number' ? v : NaN
@@ -26,11 +27,12 @@ export function encodeConfig(cfg: ShareConfig): string {
   const p = new URLSearchParams()
   p.set('p', cfg.paletteId)
   p.set('w', String(cfg.gridWidth))
-  if (cfg.kernel !== 'box') p.set('k', cfg.kernel)
+  if (cfg.kernel !== 'mode') p.set('k', cfg.kernel)
   const { brightness, contrast, saturation } = cfg.adjustments
   if (brightness) p.set('b', String(brightness))
   if (contrast) p.set('c', String(contrast))
   if (saturation) p.set('s', String(saturation))
+  if (cfg.maxColors > 0) p.set('mc', String(cfg.maxColors))
   if (cfg.pegBoardSize !== 29) p.set('pb', String(cfg.pegBoardSize))
   if (!cfg.showPegSeams) p.set('seam', '0')
   if (!cfg.showRulers) p.set('ruler', '0')
@@ -52,8 +54,9 @@ export function decodeConfig(query: string, fallbackPaletteId: string): Partial<
   return {
     paletteId: p.get('p') || fallbackPaletteId,
     gridWidth: clampInt(p.get('w'), 1, 400, 58),
-    kernel: KERNELS.includes(kernelRaw as ResampleKernel) ? (kernelRaw as ResampleKernel) : 'box',
+    kernel: KERNELS.includes(kernelRaw as ResampleKernel) ? (kernelRaw as ResampleKernel) : 'mode',
     adjustments,
+    maxColors: clampInt(p.get('mc'), 0, 221, 0),
     pegBoardSize: clampInt(p.get('pb'), 2, 100, 29),
     showPegSeams: p.get('seam') !== '0',
     showRulers: p.get('ruler') !== '0',
