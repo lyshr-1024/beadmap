@@ -18,7 +18,7 @@ export const PALETTES: PaletteEntry[] = [
     id: 'mard-221',
     palette: parsePalette(mardJson),
     approximate: false,
-    sourceNote: '色值取自两个公开色卡来源的交叉校验平均值，非厂商实测，与实物有偏差',
+    sourceNote: '色值经三个公开色卡来源交叉校验，非厂商实测，与实物仍有偏差',
   },
   { id: 'generic', palette: parsePalette(genericJson), approximate: true },
   { id: 'mini-16', palette: parsePalette(miniJson), approximate: true },

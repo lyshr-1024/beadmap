@@ -5,6 +5,7 @@ export function PalettePicker() {
   const palette = useBeadStore((s) => s.palette)
   const paletteId = useBeadStore((s) => s.paletteId)
   const approximate = useBeadStore((s) => s.paletteApproximate)
+  const sourceNote = useBeadStore((s) => s.paletteSourceNote)
   const enabled = useBeadStore((s) => s.enabledCodes)
   const setPalette = useBeadStore((s) => s.setPalette)
   const toggleColor = useBeadStore((s) => s.toggleColor)
@@ -29,8 +30,10 @@ export function PalettePicker() {
             </option>
           ))}
         </select>
-        {approximate && (
+        {approximate ? (
           <p className="text-xs text-ink-500">色值为近似占位值，请勿据此购买对应色号</p>
+        ) : (
+          sourceNote && <p className="text-xs text-ink-500">{sourceNote}</p>
         )}
       </div>
 

@@ -19,6 +19,7 @@ interface BeadState {
   paletteId: string
   palette: Palette
   paletteApproximate: boolean
+  paletteSourceNote?: string
   /** 勾选启用的色号；渲染用的索引是相对这个子集 */
   enabledCodes: Set<string>
   activeColors: BeadColor[]
@@ -123,6 +124,7 @@ export const useBeadStore = create<BeadState>((set, get) => {
     paletteId: initialEntry.id,
     palette: initialEntry.palette,
     paletteApproximate: initialEntry.approximate,
+    paletteSourceNote: initialEntry.sourceNote,
     enabledCodes: initialEnabled,
     activeColors: activeOf(initialEntry.palette, initialEnabled),
     gridWidth: initial.gridWidth ?? 58,
@@ -159,6 +161,7 @@ export const useBeadStore = create<BeadState>((set, get) => {
         paletteId: entry.id,
         palette: entry.palette,
         paletteApproximate: entry.approximate,
+        paletteSourceNote: entry.sourceNote,
         enabledCodes: enabled,
         activeColors: entry.palette.colors,
       })
