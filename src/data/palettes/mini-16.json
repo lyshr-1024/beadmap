@@ -1,0 +1,23 @@
+{
+  "brand": "Mini 16",
+  "beadSize": "5mm",
+  "_note": "占位色板：16 色精简套装的近似色值，非真实品牌色卡。用于验证多色板切换与低色数效果。",
+  "colors": [
+    { "code": "M01", "name": "白", "hex": "#FFFFFF" },
+    { "code": "M02", "name": "浅灰", "hex": "#C8C8C8" },
+    { "code": "M03", "name": "深灰", "hex": "#5A5A5A" },
+    { "code": "M04", "name": "黑", "hex": "#000000" },
+    { "code": "M05", "name": "红", "hex": "#E60026" },
+    { "code": "M06", "name": "粉", "hex": "#FF9EB5" },
+    { "code": "M07", "name": "橙", "hex": "#FF8000" },
+    { "code": "M08", "name": "黄", "hex": "#FFD700" },
+    { "code": "M09", "name": "黄绿", "hex": "#B8E645" },
+    { "code": "M10", "name": "绿", "hex": "#00B359" },
+    { "code": "M11", "name": "青", "hex": "#00B3B3" },
+    { "code": "M12", "name": "天蓝", "hex": "#66B8E6" },
+    { "code": "M13", "name": "蓝", "hex": "#0059B3" },
+    { "code": "M14", "name": "紫", "hex": "#9333CC" },
+    { "code": "M15", "name": "棕", "hex": "#8C5A2B" },
+    { "code": "M16", "name": "肤色", "hex": "#FFDBC4" }
+  ]
+}
