@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import { usageToCsv, contrastInk, baseName, fitPrintCell, contentBounds } from './export'
+import {
+  usageToCsv,
+  contrastInk,
+  baseName,
+  fitPrintCell,
+  contentBounds,
+  needsTiling,
+  planTiles,
+  tileFileName,
+} from './export'
 import { EMPTY_CELL, type QuantizeResult } from './quantize-types'
 
 function result(usage: QuantizeResult['usage']): QuantizeResult {
@@ -168,5 +177,94 @@ describe('contentBounds', () => {
     // 对角两个珠子，包围盒应覆盖两者
     const g = grid(3, 3, [0, E, E, E, E, E, E, E, 0])
     expect(contentBounds(g)).toEqual({ x: 0, y: 0, width: 3, height: 3 })
+  })
+})
+
+describe('needsTiling', () => {
+  it('小图纸不需要分块', () => {
+    expect(needsTiling(58, 58, 28)).toBe(false)
+    expect(needsTiling(100, 100, 28)).toBe(false)
+  })
+
+  it('大图纸需要分块', () => {
+    expect(needsTiling(200, 200, 28)).toBe(true)
+    expect(needsTiling(400, 400, 28)).toBe(true)
+  })
+})
+
+describe('planTiles', () => {
+  const full = (w: number, h: number) => ({ x: 0, y: 0, width: w, height: h })
+
+  it('每块都在面积上限内', () => {
+    const tiles = planTiles(full(400, 400), 28, 29)
+    expect(tiles.length).toBeGreaterThan(1)
+    for (const t of tiles) {
+      expect(needsTiling(t.width, t.height, 28)).toBe(false)
+    }
+  })
+
+  it('所有块无缝无重叠地覆盖整个范围', () => {
+    const b = full(400, 400)
+    const tiles = planTiles(b, 28, 29)
+    const seen = new Set<string>()
+    let cells = 0
+    for (const t of tiles) {
+      for (let y = t.y; y < t.y + t.height; y++) {
+        for (let x = t.x; x < t.x + t.width; x++) {
+          const k = `${x},${y}`
+          expect(seen.has(k)).toBe(false) // 无重叠
+          seen.add(k)
+          cells++
+        }
+      }
+    }
+    expect(cells).toBe(b.width * b.height) // 无遗漏
+  })
+
+  it('切分点对齐洞洞板边界', () => {
+    const tiles = planTiles(full(400, 400), 28, 29)
+    for (const t of tiles) {
+      expect(t.x % 29).toBe(0)
+      expect(t.y % 29).toBe(0)
+    }
+  })
+
+  it('保留 bounds 偏移', () => {
+    const tiles = planTiles({ x: 10, y: 20, width: 400, height: 400 }, 28, 29)
+    expect(tiles[0].x).toBe(10)
+    expect(tiles[0].y).toBe(20)
+  })
+
+  it('块序号从 1 连续递增', () => {
+    const tiles = planTiles(full(400, 400), 28, 29)
+    expect(tiles.map((t) => t.n)).toEqual(tiles.map((_, i) => i + 1))
+  })
+
+  it('长条形只在需要的方向切', () => {
+    const tiles = planTiles(full(600, 30), 28, 29)
+    expect(tiles.every((t) => t.row === 0)).toBe(true)
+  })
+
+  it('板尺寸为 1 时退化为按格切但仍覆盖完整', () => {
+    const tiles = planTiles(full(300, 300), 28, 1)
+    const total = tiles.reduce((s, t) => s + t.width * t.height, 0)
+    expect(total).toBe(300 * 300)
+  })
+})
+
+describe('tileFileName', () => {
+  it('含序号与行列范围', () => {
+    const t = { n: 3, col: 0, row: 1, x: 29, y: 58, width: 29, height: 29 }
+    expect(tileFileName(t, 9)).toBe('tile-3_r59-87_c30-58.png')
+  })
+
+  it('序号按总数补零便于排序', () => {
+    const t = { n: 3, col: 0, row: 0, x: 0, y: 0, width: 1, height: 1 }
+    expect(tileFileName(t, 12)).toMatch(/^tile-03_/)
+  })
+
+  it('只含 ASCII，避免 ZIP 文件名乱码', () => {
+    const t = { n: 1, col: 0, row: 0, x: 0, y: 0, width: 29, height: 29 }
+    expect(tileFileName(t, 4)).toMatch(/^[\x20-\x7e]+$/)
   })
 })

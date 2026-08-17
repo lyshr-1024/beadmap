@@ -9,6 +9,11 @@ import {
   baseName,
   fitPrintCell,
   contentBounds,
+  needsTiling,
+  planTiles,
+  tileFileName,
+  tilesReadme,
+  zipFiles,
   DEFAULT_PRINT,
 } from '../lib/export'
 
@@ -24,6 +29,7 @@ export function ExportPanel() {
   const [copied, setCopied] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [failed, setFailed] = useState<string | null>(null)
+  const [progress, setProgress] = useState('')
 
   const disabled = !result || exporting
   const bounds = result
@@ -31,27 +37,49 @@ export function ExportPanel() {
       ? contentBounds(result)
       : { x: 0, y: 0, width: result.width, height: result.height }
     : null
-  const printCell = bounds ? fitPrintCell(bounds.width, bounds.height, DEFAULT_PRINT.cell) : DEFAULT_PRINT.cell
   const trimmed = !!result && !!bounds && (bounds.width !== result.width || bounds.height !== result.height)
+  const willTile = !!bounds && needsTiling(bounds.width, bounds.height, DEFAULT_PRINT.cell)
+  const tiles = bounds && willTile ? planTiles(bounds, DEFAULT_PRINT.cell, pegBoardSize) : []
+  // 分块时每块都用足尺格子；单张时才按面积压缩
+  const printCell = bounds
+    ? willTile
+      ? DEFAULT_PRINT.cell
+      : fitPrintCell(bounds.width, bounds.height, DEFAULT_PRINT.cell)
+    : DEFAULT_PRINT.cell
 
   async function exportPng() {
-    if (!result) return
+    if (!result || !bounds) return
     setExporting(true)
     setFailed(null)
+    setProgress('')
+    const opts = { ...DEFAULT_PRINT, showCodes, trimEmpty, pegBoardSize, showPegSeams }
+    const stem = baseName(source?.name ?? '')
     try {
-      const canvas = renderPrintable(result, activeColors, {
-        ...DEFAULT_PRINT,
-        showCodes,
-        trimEmpty,
-        pegBoardSize,
-        showPegSeams,
+      if (!willTile) {
+        const blob = await canvasToPngBlob(renderPrintable(result, activeColors, opts))
+        downloadBlob(blob, `${stem}-图纸.png`)
+        return
+      }
+
+      const files: Record<string, Blob> = {}
+      for (const t of tiles) {
+        setProgress(`生成第 ${t.n}/${tiles.length} 块…`)
+        // 让出主线程，否则进度提示不会刷新
+        await new Promise((r) => setTimeout(r, 0))
+        const canvas = renderPrintable(result, activeColors, opts, t)
+        files[tileFileName(t, tiles.length)] = await canvasToPngBlob(canvas)
+      }
+      files['usage.csv'] = csvToBlob(usageToCsv(result))
+      files['README.txt'] = new Blob(['\ufeff' + tilesReadme(tiles, bounds, pegBoardSize)], {
+        type: 'text/plain;charset=utf-8',
       })
-      const blob = await canvasToPngBlob(canvas)
-      downloadBlob(blob, `${baseName(source?.name ?? '')}-图纸.png`)
+      setProgress('打包中…')
+      downloadBlob(await zipFiles(files), `${stem}-tiles-${tiles.length}.zip`)
     } catch (e) {
       setFailed(e instanceof Error ? e.message : String(e))
     } finally {
       setExporting(false)
+      setProgress('')
     }
   }
 
@@ -100,8 +128,10 @@ export function ExportPanel() {
         <p className="text-xs text-ink-500">
           图纸 {bounds.width} × {bounds.height} 格
           {trimmed && `（已从 ${result.width} × ${result.height} 裁剪）`}
-          {printCell < DEFAULT_PRINT.cell && '，格子已缩小以适配画布上限'}
-          {printCell < 14 && showCodes && '，格子过小将省略色号'}
+          {willTile
+            ? `，超出单张上限，将切成 ${tiles.length} 块打包为 ZIP`
+            : printCell < DEFAULT_PRINT.cell && '，格子已缩小以适配画布上限'}
+          {!willTile && printCell < 14 && showCodes && '，格子过小将省略色号'}
         </p>
       )}
 
@@ -116,7 +146,7 @@ export function ExportPanel() {
           disabled={disabled}
           className="flex-1 rounded border border-ink-700 px-3 py-1.5 text-sm text-ink-300 transition-colors hover:border-ink-500 disabled:opacity-40"
         >
-          {exporting ? '生成中…' : '打印版 PNG'}
+          {exporting ? progress || '生成中…' : willTile ? `打印版 ZIP（${tiles.length} 块）` : '打印版 PNG'}
         </button>
         <button
           type="button"
