@@ -6,12 +6,15 @@ import type { QuantizeResult } from '../lib/quantize-types'
 import { NEUTRAL_ADJUSTMENTS, type Adjustments } from '../lib/adjust'
 import { PALETTES, DEFAULT_PALETTE_ID, getPalette } from '../data/palettes'
 import { decodeConfig, buildShareUrl, type ShareConfig } from '../lib/share'
+import { measureDetail, reportDetail, type DetailReport, type DetailMeasure } from '../lib/detail'
 
 interface SourceImage {
   name: string
   width: number
   height: number
   data: ImageData
+  /** 细节损失曲线只跟图像有关，扫一次就够 */
+  measured: DetailMeasure
 }
 
 interface BeadState {
@@ -32,6 +35,8 @@ interface BeadState {
   showPegSeams: boolean
   showRulers: boolean
   result: QuantizeResult | null
+  /** 原图细节密度分析，用于提示网格是否够用 */
+  detail: DetailReport | null
   busy: boolean
   error: string | null
 
@@ -128,7 +133,7 @@ export const useBeadStore = create<BeadState>((set, get) => {
     enabledCodes: initialEnabled,
     activeColors: activeOf(initialEntry.palette, initialEnabled),
     gridWidth: initial.gridWidth ?? 58,
-    kernel: initial.kernel ?? 'mode',
+    kernel: initial.kernel ?? 'box',
     alphaThreshold: 128,
     adjustments: initial.adjustments ?? NEUTRAL_ADJUSTMENTS,
     maxColors: initial.maxColors ?? 0,
@@ -136,6 +141,7 @@ export const useBeadStore = create<BeadState>((set, get) => {
     showPegSeams: initial.showPegSeams ?? true,
     showRulers: initial.showRulers ?? true,
     result: null,
+    detail: null,
     busy: false,
     error: null,
 
@@ -143,9 +149,11 @@ export const useBeadStore = create<BeadState>((set, get) => {
       set({ busy: true, error: null })
       try {
         const data = await fileToImageData(file)
+        const measured = measureDetail(data)
         set({
-          source: { name: file.name, width: data.width, height: data.height, data },
+          source: { name: file.name, width: data.width, height: data.height, data, measured },
           result: null,
+          detail: reportDetail(measured, get().gridWidth),
         })
         await compute()
       } catch (e) {
@@ -169,7 +177,12 @@ export const useBeadStore = create<BeadState>((set, get) => {
     },
 
     setGridWidth: (w) => {
-      set({ gridWidth: Math.max(1, Math.min(MAX_GRID, Math.round(w))) })
+      const gridWidth = Math.max(1, Math.min(MAX_GRID, Math.round(w)))
+      const { source } = get()
+      set({
+        gridWidth,
+        detail: source ? reportDetail(source.measured, gridWidth) : null,
+      })
       schedule()
     },
 

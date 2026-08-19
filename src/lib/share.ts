@@ -27,7 +27,7 @@ export function encodeConfig(cfg: ShareConfig): string {
   const p = new URLSearchParams()
   p.set('p', cfg.paletteId)
   p.set('w', String(cfg.gridWidth))
-  if (cfg.kernel !== 'mode') p.set('k', cfg.kernel)
+  if (cfg.kernel !== 'box') p.set('k', cfg.kernel)
   const { brightness, contrast, saturation } = cfg.adjustments
   if (brightness) p.set('b', String(brightness))
   if (contrast) p.set('c', String(contrast))
@@ -54,7 +54,7 @@ export function decodeConfig(query: string, fallbackPaletteId: string): Partial<
   return {
     paletteId: p.get('p') || fallbackPaletteId,
     gridWidth: clampInt(p.get('w'), 1, 400, 58),
-    kernel: KERNELS.includes(kernelRaw as ResampleKernel) ? (kernelRaw as ResampleKernel) : 'mode',
+    kernel: KERNELS.includes(kernelRaw as ResampleKernel) ? (kernelRaw as ResampleKernel) : 'box',
     adjustments,
     maxColors: clampInt(p.get('mc'), 0, 221, 0),
     pegBoardSize: clampInt(p.get('pb'), 2, 100, 29),

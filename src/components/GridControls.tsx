@@ -16,6 +16,7 @@ export function GridControls() {
   const setGridWidth = useBeadStore((s) => s.setGridWidth)
   const setKernel = useBeadStore((s) => s.setKernel)
   const setMaxColors = useBeadStore((s) => s.setMaxColors)
+  const detail = useBeadStore((s) => s.detail)
 
   const grid = source ? fitGrid(source.width, source.height, gridWidth) : null
   const active = KERNELS.find((k) => k.id === kernel)
@@ -50,7 +51,37 @@ export function GridControls() {
           onChange={(e) => setGridWidth(Number(e.target.value))}
           className="w-full accent-ink-400 disabled:opacity-40"
         />
-        <p className="text-xs text-ink-500">高度按原图比例自动锁定</p>
+        {detail?.tooCoarse ? (
+          <div className="space-y-1.5 rounded border border-ink-600 bg-ink-850 px-2.5 py-2">
+            <p className="text-xs leading-relaxed text-ink-300">
+              {gridWidth} 格下每格要吞掉约 {Math.round(detail.pixelsPerCell)} ×{' '}
+              {Math.round(detail.pixelsPerCell)} 个像素，细节会明显丢失。
+            </p>
+            {detail.beyondReach ? (
+              <p className="text-xs leading-relaxed text-ink-500">
+                这张图的细节量超出拼豆能表达的范围——加到 {detail.suggestedWidth} 格
+                （约 {detail.suggestedBeads.toLocaleString()} 颗豆）仍然会糊。
+                建议裁掉次要区域、只保留一个主体，或换一张构图更简单的图。
+              </p>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setGridWidth(detail.suggestedWidth)}
+                  className="rounded border border-ink-500 px-2 py-1 text-xs text-ink-200 transition-colors hover:border-ink-400"
+                >
+                  提高到 {detail.suggestedWidth} 格
+                </button>
+                <p className="text-xs leading-relaxed text-ink-600">
+                  约需 {detail.suggestedBeads.toLocaleString()} 颗豆。
+                  也可以先裁掉次要区域、只保留主体，这比单纯加格子更省。
+                </p>
+              </>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-ink-500">高度按原图比例自动锁定</p>
+        )}
       </div>
 
       <div className="space-y-2">
