@@ -224,8 +224,41 @@ export function BeadCanvas() {
         className={`min-h-0 flex-1 ${fitted ? 'overflow-hidden' : 'overflow-auto'}`}
       >
         {!result ? (
-          <div className="flex h-full min-h-64 items-center justify-center text-sm text-ink-500">
-            上传图片后在此预览图纸
+          <div className="flex h-full min-h-64 items-center justify-center p-6">
+            <div className="max-w-md space-y-5">
+              <div className="space-y-1.5">
+                <h2 className="font-medium text-base text-ink-200">把图片变成拼豆图纸</h2>
+                <p className="text-xs leading-relaxed text-ink-500">
+                  上传一张图，自动匹配到真实拼豆色号，输出可打印的图纸和每色用量。
+                  图片只在你的浏览器里处理，不会上传到任何服务器。
+                </p>
+              </div>
+
+              <ol className="space-y-2.5 text-xs leading-relaxed text-ink-400">
+                {[
+                  ['上传图片', '把图片拖进虚线框，或点击选择、Ctrl/Cmd+V 粘贴。'],
+                  ['选图片类型', '插画、表情包、像素画选「卡通/像素」；真实照片选「照片」。这一项对成品影响最大。'],
+                  ['定网格宽度', '决定成品有多少颗豆宽。高度按原图比例自动锁定。'],
+                  ['核对色号', '鼠标移到珠子上看色号，右上角放大可逐格查看。'],
+                  ['导出', '「打印版 PNG」是带色号的图纸，「用量 CSV」是买豆清单。'],
+                ].map(([t, d], i) => (
+                  <li key={t} className="flex gap-2.5">
+                    <span className="mt-px grid size-4 shrink-0 place-items-center rounded-full bg-ink-800 text-[10px] text-ink-300">
+                      {i + 1}
+                    </span>
+                    <span>
+                      <b className="font-medium text-ink-300">{t}</b>
+                      <span className="text-ink-500">　{d}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+
+              <p className="border-ink-800 border-t pt-3 text-xs leading-relaxed text-ink-600">
+                提示：内置 Mard 221 色板，色值来自公开色卡交叉校验，与实物可能有偏差。
+                只想用手上有的豆子，可在「可用色号」里取消勾选其余颜色。
+              </p>
+            </div>
           </div>
         ) : (
           <div className={fitted ? 'flex h-full items-center justify-center' : 'inline-block p-2'}>

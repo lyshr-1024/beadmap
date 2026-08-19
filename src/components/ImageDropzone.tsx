@@ -59,6 +59,7 @@ export function ImageDropzone() {
         <div className="space-y-1">
           <div className="text-ink-300">拖拽图片到此处</div>
           <div className="text-xs text-ink-500">或点击选择 · 支持 Ctrl/Cmd+V 粘贴</div>
+          <div className="text-xs text-ink-600">PNG / JPG / GIF / WebP · 带透明背景的图会自动留空</div>
         </div>
       )}
     </div>

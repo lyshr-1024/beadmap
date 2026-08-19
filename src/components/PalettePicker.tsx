@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useBeadStore, PALETTES } from '../store/useBeadStore'
+import { HelpTip } from './HelpTip'
 
 export function PalettePicker() {
   const palette = useBeadStore((s) => s.palette)
@@ -15,9 +16,18 @@ export function PalettePicker() {
   return (
     <div className="space-y-2">
       <div className="space-y-1">
-        <label htmlFor="palette-select" className="block text-xs tracking-wide text-ink-400 uppercase">
-          色板
-        </label>
+        <span className="flex items-center gap-1.5">
+          <label htmlFor="palette-select" className="text-xs tracking-wide text-ink-400 uppercase">
+            色板
+          </label>
+          <HelpTip>
+            你买的是哪个牌子的豆子。图纸上的色号要和实物对得上，
+            所以这里必须选对牌子。
+            <br />
+            <br />
+            Mard 221 是常见的 2.6mm 小豆全套色号。切换色板会重置色号勾选。
+          </HelpTip>
+        </span>
         <select
           id="palette-select"
           value={paletteId}
@@ -42,7 +52,16 @@ export function PalettePicker() {
         onClick={() => setOpen(!open)}
         className="flex w-full items-baseline justify-between text-xs tracking-wide text-ink-400 uppercase hover:text-ink-300"
       >
-        <span>可用色号</span>
+        <span className="flex items-center gap-1.5">
+          可用色号
+          <HelpTip>
+            只勾选你<b className="text-ink-300">手上真的有</b>的色号，
+            匹配时就只会用这些颜色，不会出现买不到的色号。
+            <br />
+            <br />
+            默认全选。想只用某几色做单色/双色作品，也可以在这里取消其余颜色。
+          </HelpTip>
+        </span>
         <span className="text-ink-500 normal-case">
           {enabled.size}/{palette.colors.length} {open ? '收起' : '展开'}
         </span>

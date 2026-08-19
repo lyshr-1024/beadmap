@@ -16,6 +16,7 @@ import {
   zipFiles,
   DEFAULT_PRINT,
 } from '../lib/export'
+import { HelpTip } from './HelpTip'
 
 export function ExportPanel() {
   const result = useBeadStore((s) => s.result)
@@ -102,7 +103,22 @@ export function ExportPanel() {
 
   return (
     <div className="space-y-2">
-      <span className="block text-xs tracking-wide text-ink-400 uppercase">导出</span>
+      <span className="flex items-center gap-1.5">
+        <span className="text-xs tracking-wide text-ink-400 uppercase">导出</span>
+        <HelpTip>
+          <b className="text-ink-300">打印版 PNG</b>：白底方格图纸，每格标着色号，
+          照着拼就行。图纸太大时会自动切成多块打包成 ZIP，一块对应若干块洞洞板。
+          <br />
+          <br />
+          <b className="text-ink-300">用量 CSV</b>：每个色号需要多少颗，
+          买豆子时照着买。可以直接用 Excel 打开。
+          <br />
+          <br />
+          <b className="text-ink-300">复制配置链接</b>：把当前参数存进链接。
+          换设备或分享给别人时，打开链接后重新上传同一张图就能得到一样的结果
+          （图片本身不在链接里）。
+        </HelpTip>
+      </span>
 
       <label className="flex items-center gap-2 text-sm text-ink-300">
         <input
