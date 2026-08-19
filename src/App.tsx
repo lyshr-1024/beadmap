@@ -13,8 +13,8 @@ export default function App() {
   const error = useBeadStore((s) => s.error)
 
   return (
-    <div className="flex min-h-full flex-col lg:flex-row">
-      <aside className="w-full shrink-0 space-y-6 overflow-y-auto border-ink-800 border-b p-5 lg:h-screen lg:w-80 lg:border-r lg:border-b-0">
+    <div className="flex h-full flex-col lg:flex-row">
+      <aside className="order-2 w-full shrink-0 space-y-6 overflow-y-auto border-ink-800 border-t p-5 lg:order-1 lg:h-screen lg:w-80 lg:border-t-0 lg:border-r">
         <header className="space-y-1">
           <h1 className="font-medium text-lg">豆图 BeadMap</h1>
           <p className="text-xs text-ink-500">图片转拼豆图纸 · 全程本地处理，图片不上传</p>
@@ -33,7 +33,7 @@ export default function App() {
         <UsageList />
       </aside>
 
-      <main className="relative min-w-0 flex-1 bg-ink-900 lg:h-screen lg:overflow-auto">
+      <main className="relative order-1 h-[55vh] min-w-0 shrink-0 bg-ink-900 lg:order-2 lg:h-screen lg:flex-1 lg:shrink">
         {busy && (
           <div className="absolute top-3 right-3 z-10 rounded bg-ink-800 px-2 py-1 text-xs text-ink-400">
             计算中…
