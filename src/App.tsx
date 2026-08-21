@@ -1,4 +1,5 @@
 import { ImageDropzone } from './components/ImageDropzone'
+import { CropPanel } from './components/CropPanel'
 import { GridControls } from './components/GridControls'
 import { AdjustControls } from './components/AdjustControls'
 import { PalettePicker } from './components/PalettePicker'
@@ -33,6 +34,7 @@ export default function App() {
         </header>
 
         <ImageDropzone />
+        <CropPanel />
         <GridControls />
         <AdjustControls />
         <ViewOptions />

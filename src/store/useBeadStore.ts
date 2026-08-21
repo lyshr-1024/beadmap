@@ -7,14 +7,20 @@ import { NEUTRAL_ADJUSTMENTS, type Adjustments } from '../lib/adjust'
 import { PALETTES, DEFAULT_PALETTE_ID, getPalette } from '../data/palettes'
 import { decodeConfig, buildShareUrl, type ShareConfig } from '../lib/share'
 import { measureDetail, reportDetail, type DetailReport, type DetailMeasure } from '../lib/detail'
+import { FULL_CROP, isFullCrop, cropToPixels, type Crop } from '../lib/crop'
 
 interface SourceImage {
   name: string
+  /** 裁剪后的有效尺寸 */
   width: number
   height: number
   data: ImageData
   /** 细节损失曲线只跟图像有关，扫一次就够 */
   measured: DetailMeasure
+  /** 原始整图，改裁剪框时从这里重新取 */
+  full: ImageData
+  fullWidth: number
+  fullHeight: number
 }
 
 interface BeadState {
@@ -31,6 +37,7 @@ interface BeadState {
   alphaThreshold: number
   adjustments: Adjustments
   maxColors: number
+  crop: Crop
   pegBoardSize: number
   showPegSeams: boolean
   showRulers: boolean
@@ -47,6 +54,8 @@ interface BeadState {
   setAdjustment: (key: keyof Adjustments, value: number) => void
   resetAdjustments: () => void
   setMaxColors: (n: number) => void
+  setCrop: (c: Crop) => void
+  resetCrop: () => void
   toggleColor: (code: string) => void
   setAllColors: (enabled: boolean) => void
   setPegBoardSize: (n: number) => void
@@ -57,6 +66,25 @@ interface BeadState {
 
 const MAX_GRID = 400
 const DEBOUNCE_MS = 80
+
+/** 从整图里按裁剪框取出一块 */
+function cutRegion(full: ImageData, crop: Crop): ImageData {
+  if (isFullCrop(crop)) return full
+  const r = cropToPixels(crop, full.width, full.height)
+  const canvas = document.createElement('canvas')
+  canvas.width = r.width
+  canvas.height = r.height
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  if (!ctx) throw new Error('无法创建 canvas 上下文')
+  const src = document.createElement('canvas')
+  src.width = full.width
+  src.height = full.height
+  const sctx = src.getContext('2d')
+  if (!sctx) throw new Error('无法创建 canvas 上下文')
+  sctx.putImageData(full, 0, 0)
+  ctx.drawImage(src, r.x, r.y, r.width, r.height, 0, 0, r.width, r.height)
+  return ctx.getImageData(0, 0, r.width, r.height)
+}
 
 async function fileToImageData(file: File): Promise<ImageData> {
   const bitmap = await createImageBitmap(file)
@@ -137,6 +165,7 @@ export const useBeadStore = create<BeadState>((set, get) => {
     alphaThreshold: 128,
     adjustments: initial.adjustments ?? NEUTRAL_ADJUSTMENTS,
     maxColors: initial.maxColors ?? 0,
+    crop: FULL_CROP,
     pegBoardSize: initial.pegBoardSize ?? 29,
     showPegSeams: initial.showPegSeams ?? true,
     showRulers: initial.showRulers ?? true,
@@ -151,7 +180,17 @@ export const useBeadStore = create<BeadState>((set, get) => {
         const data = await fileToImageData(file)
         const measured = measureDetail(data)
         set({
-          source: { name: file.name, width: data.width, height: data.height, data, measured },
+          crop: FULL_CROP,
+          source: {
+            name: file.name,
+            width: data.width,
+            height: data.height,
+            data,
+            measured,
+            full: data,
+            fullWidth: data.width,
+            fullHeight: data.height,
+          },
           result: null,
           detail: reportDetail(measured, get().gridWidth),
         })
@@ -203,6 +242,37 @@ export const useBeadStore = create<BeadState>((set, get) => {
 
     setMaxColors: (n) => {
       set({ maxColors: Math.max(0, Math.min(221, Math.round(n))) })
+      schedule()
+    },
+
+    setCrop: (crop) => {
+      const { source, gridWidth } = get()
+      if (!source) return
+      const data = cutRegion(source.full, crop)
+      const measured = measureDetail(data)
+      set({
+        crop,
+        source: { ...source, width: data.width, height: data.height, data, measured },
+        detail: reportDetail(measured, gridWidth),
+      })
+      schedule()
+    },
+
+    resetCrop: () => {
+      const { source, gridWidth } = get()
+      if (!source) return
+      const measured = measureDetail(source.full)
+      set({
+        crop: FULL_CROP,
+        source: {
+          ...source,
+          width: source.fullWidth,
+          height: source.fullHeight,
+          data: source.full,
+          measured,
+        },
+        detail: reportDetail(measured, gridWidth),
+      })
       schedule()
     },
 
